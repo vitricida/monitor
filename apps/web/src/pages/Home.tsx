@@ -1,11 +1,13 @@
 import React from "react";
 
-const Home: React.FC = () => {
+const Home = () => {
   return (
     <div className="space-y-6">
-      <h1 className="h1 text-center">Bienvenido a la página de inicio</h1>
-      <p className="text-body-large text-center">
-        Esta es la página principal de la aplicación
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        Welcome to the home page
+      </h1>
+      <p className="text-gray-600 dark:text-gray-300">
+        This is the main page of the application
       </p>
     </div>
   );
