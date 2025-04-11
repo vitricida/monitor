@@ -4,10 +4,10 @@ const Home = () => {
   return (
     <div className="space-y-2">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-        Welcome to the home page
+        New monitored area
       </h1>
       <p className="text-gray-600 dark:text-gray-300">
-        This is the main page of the application
+        Add a new monitored area to your list
       </p>
     </div>
   );
