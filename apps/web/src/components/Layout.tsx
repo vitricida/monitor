@@ -19,7 +19,7 @@ const NavLink = ({ to, children }: NavLinkProps) => (
 const Layout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <nav className="bg-gray-100 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-100 border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <NavLink to="/">
@@ -31,11 +31,11 @@ const Layout = () => {
         </div>
       </nav>
 
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 mt-16 mb-16">
         <Outlet />
       </main>
 
-      <footer className="bg-gray-100 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-gray-100 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <div className="container mx-auto px-4 py-1 text-center text-xs text-gray-500 dark:text-gray-400">
           © {new Date().getFullYear()} Monitor
         </div>

@@ -1,5 +1,5 @@
 import React from "react";
-
+import AreaSelectMap from "../components/AreaSelectMap";
 const Home = () => {
   return (
     <div className="space-y-2">
@@ -9,6 +9,7 @@ const Home = () => {
       <p className="text-gray-600 dark:text-gray-300">
         Add a new monitored area to your list
       </p>
+      <AreaSelectMap />
     </div>
   );
 };
