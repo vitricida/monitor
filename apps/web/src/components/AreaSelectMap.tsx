@@ -45,8 +45,11 @@ const AreaSelectMap = memo(() => {
     useState<google.maps.LatLngLiteral>(defaultCenter);
   const [locationInfo, setLocationInfo] = useState<{
     country: string;
+    countryCode: string;
     region: string;
   } | null>(null);
+
+  const [area, setArea] = useState<number | null>(null);
 
   /**
    * Calculates the centroid of a polygon
@@ -89,7 +92,6 @@ const AreaSelectMap = memo(() => {
       console.log("Geocoding for centroid:", { lat, lng });
       const geocoder = new google.maps.Geocoder();
 
-      // Try geocoding with the centroid coordinates
       const response = await geocoder.geocode({
         location: { lat, lng },
       });
@@ -101,14 +103,15 @@ const AreaSelectMap = memo(() => {
         console.log("Address components:", addressComponents);
 
         let country = "";
+        let countryCode = "";
         let region = "";
 
-        // Look for country and region in the address components
         for (const component of addressComponents) {
           console.log("Checking component:", component);
           if (component.types.includes("country")) {
             country = component.long_name;
-            console.log("Found country:", country);
+            countryCode = component.short_name;
+            console.log("Found country:", country, "Code:", countryCode);
           }
           if (component.types.includes("administrative_area_level_1")) {
             region = component.long_name;
@@ -117,8 +120,12 @@ const AreaSelectMap = memo(() => {
         }
 
         if (country) {
-          setLocationInfo({ country, region });
-          console.log("Setting location info:", { country, region });
+          setLocationInfo({ country, countryCode, region });
+          console.log("Setting location info:", {
+            country,
+            countryCode,
+            region,
+          });
         } else {
           console.log("No country found in address components");
           setLocationInfo(null);
@@ -131,6 +138,13 @@ const AreaSelectMap = memo(() => {
       console.error("Geocoding error:", error);
       setLocationInfo(null);
     }
+  }, []);
+
+  const calculateArea = useCallback((polygon: google.maps.Polygon) => {
+    const area = google.maps.geometry.spherical.computeArea(polygon.getPath());
+    // Convert square meters to hectares (1 hectare = 10,000 square meters)
+    const hectares = area / 10000;
+    setArea(hectares);
   }, []);
 
   /**
@@ -208,6 +222,7 @@ const AreaSelectMap = memo(() => {
         const centroid = calculateCentroid(newPath);
         setMapCenter(centroid);
         getLocationInfo(centroid.lat, centroid.lng);
+        calculateArea(polygon);
         const geoJson = {
           type: "Feature",
           properties: {},
@@ -221,9 +236,10 @@ const AreaSelectMap = memo(() => {
         console.log("Polygon GeoJSON:", JSON.stringify(geoJson, null, 2));
       } else {
         setLocationInfo(null);
+        setArea(null);
       }
     }
-  }, [polygon, calculateCentroid, getLocationInfo]);
+  }, [polygon, calculateCentroid, getLocationInfo, calculateArea]);
 
   return (
     <div className="w-full rounded-lg overflow-hidden shadow-lg relative">
@@ -288,16 +304,19 @@ const AreaSelectMap = memo(() => {
           </button>
         </div>
       )}
-      {locationInfo && (
+      {locationInfo && area && (
         <div className="absolute bottom-4 left-4 z-50 bg-white dark:bg-gray-800 text-gray-800 dark:text-white p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-200">
             Location Info:
           </p>
           <p className="text-gray-700 dark:text-gray-300">
-            Country: {locationInfo.country}
+            Country: {locationInfo.country} ({locationInfo.countryCode})
           </p>
           <p className="text-gray-700 dark:text-gray-300">
             Region: {locationInfo.region}
+          </p>
+          <p className="text-gray-700 dark:text-gray-300">
+            Area: {area.toFixed(2)} hectares
           </p>
         </div>
       )}
