@@ -6,11 +6,18 @@ const containerStyle = {
   height: "500px",
 };
 
+const defaultCenter = {
+  lat: -32.5,
+  lng: -55.5,
+};
+
+const defaultZoom = 6;
+
 interface MapProps {
   polygonPath: google.maps.LatLngLiteral[];
   onPolygonPathChange: (path: google.maps.LatLngLiteral[]) => void;
   onPolygonUpdate: (polygon: google.maps.Polygon) => void;
-  mapCenter: google.maps.LatLngLiteral;
+  mapCenter?: google.maps.LatLngLiteral;
 }
 
 const Map = memo(
@@ -18,7 +25,7 @@ const Map = memo(
     polygonPath,
     onPolygonPathChange,
     onPolygonUpdate,
-    mapCenter,
+    mapCenter = defaultCenter,
   }: MapProps) => {
     const [polygon, setPolygon] = useState<google.maps.Polygon | null>(null);
 
@@ -49,8 +56,12 @@ const Map = memo(
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={mapCenter}
-        zoom={10}
+        zoom={defaultZoom}
         onClick={handleMapClick}
+        mapTypeId="hybrid"
+        options={{
+          streetViewControl: false,
+        }}
       >
         {polygonPath.length > 0 && (
           <Polygon

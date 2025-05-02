@@ -5,8 +5,8 @@ import Map from "./Map";
 import SelectionInfo from "./SelectionInfo";
 
 const defaultCenter = {
-  lat: 0,
-  lng: 0,
+  lat: -32.5,
+  lng: -55.5,
 };
 
 const AreaSelection = memo(() => {
