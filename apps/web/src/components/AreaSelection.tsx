@@ -1,198 +1,102 @@
-import { useState, useCallback, memo } from "react";
-import { LoadScript } from "@react-google-maps/api";
-import { libraries } from "../config/googleMaps";
+import { useState } from "react";
 import Map from "./Map";
 import SelectionInfo from "./SelectionInfo";
 
-const defaultCenter = {
-  lat: -32.5,
-  lng: -55.5,
-};
+export interface Point {
+  id: number;
+  lat: number;
+  lng: number;
+}
 
-const AreaSelection = memo(() => {
-  const [polygonPath, setPolygonPath] = useState<google.maps.LatLngLiteral[]>(
-    []
-  );
-  const [mapCenter, setMapCenter] =
-    useState<google.maps.LatLngLiteral>(defaultCenter);
-  const [locationInfo, setLocationInfo] = useState<{
-    country: string;
-    countryCode: string;
-    region: string;
-  } | null>(null);
-  const [area, setArea] = useState<number | null>(null);
-  const MAX_AREA_HECTARES = 1000000; // 1,000,000 hectáreas = 10,000 km²
+const AreaSelection = () => {
+  const [points, setPoints] = useState<Point[]>([]);
+  const [showPolygon, setShowPolygon] = useState(false);
 
-  const updateLocationInfo = useCallback(async (lat: number, lng: number) => {
-    try {
-      const geocoder = new google.maps.Geocoder();
-      const response = await geocoder.geocode({
-        location: { lat, lng },
-      });
+  const handleMapClick = (lat: number, lng: number) => {
+    setPoints([...points, { id: points.length + 1, lat, lng }]);
+  };
 
-      if (response.results.length > 0) {
-        const addressComponents = response.results[0].address_components;
-        let country = "";
-        let countryCode = "";
-        let region = "";
+  const handleDeleteLastPoint = () => {
+    if (points.length === 0) return;
 
-        for (const component of addressComponents) {
-          if (component.types.includes("country")) {
-            country = component.long_name;
-            countryCode = component.short_name;
-          }
-          if (component.types.includes("administrative_area_level_1")) {
-            region = component.long_name;
-          }
-        }
+    // Eliminar el último punto
+    const newPoints = points.slice(0, -1);
 
-        if (country) {
-          setLocationInfo({ country, countryCode, region });
-        } else {
-          setLocationInfo(null);
-        }
-      } else {
-        setLocationInfo(null);
-      }
-    } catch (error) {
-      console.error("Geocoding error:", error);
-      setLocationInfo(null);
+    // Si después de eliminar quedan menos de 3 puntos, ocultar el polígono
+    if (newPoints.length < 3) {
+      setShowPolygon(false);
     }
-  }, []);
 
-  const calculateArea = useCallback((polygon: google.maps.Polygon) => {
-    const area = google.maps.geometry.spherical.computeArea(polygon.getPath());
-    const hectares = area / 10000;
-    setArea(hectares);
-  }, []);
+    // Actualizar los IDs de los puntos restantes
+    const updatedPoints = newPoints.map((point, i) => ({
+      ...point,
+      id: i + 1,
+    }));
 
-  const handlePolygonPathChange = useCallback(
-    (newPath: google.maps.LatLngLiteral[]) => {
-      setPolygonPath(newPath);
-      if (newPath.length >= 3) {
-        const tempPolygon = new google.maps.Polygon({
-          paths: newPath,
-        });
-        const area = google.maps.geometry.spherical.computeArea(
-          tempPolygon.getPath()
-        );
-        const hectares = area / 10000;
+    setPoints(updatedPoints);
+  };
 
-        if (hectares > MAX_AREA_HECTARES) {
-          alert(
-            `El área seleccionada es demasiado grande (${hectares.toFixed(2)} hectáreas). El máximo permitido es ${MAX_AREA_HECTARES.toFixed(2)} hectáreas.`
-          );
-          setPolygonPath([]);
-          setLocationInfo(null);
-          setArea(null);
-          return;
-        }
+  const handleMarkerDragEnd = (pointId: number, lat: number, lng: number) => {
+    setPoints(
+      points.map((point) =>
+        point.id === pointId ? { ...point, lat, lng } : point
+      )
+    );
+  };
 
-        // Usar el primer punto del polígono como referencia para la ubicación
-        const referencePoint = newPath[0];
-        setMapCenter(referencePoint);
-        updateLocationInfo(referencePoint.lat, referencePoint.lng);
-        calculateArea(tempPolygon);
-      } else {
-        setLocationInfo(null);
-        setArea(null);
-      }
-    },
-    [updateLocationInfo, calculateArea]
-  );
+  const handleDeletePolygon = () => {
+    setPoints([]);
+    setShowPolygon(false);
+  };
 
-  const handlePolygonUpdate = useCallback(
-    (polygon: google.maps.Polygon) => {
-      const area = google.maps.geometry.spherical.computeArea(
-        polygon.getPath()
-      );
-      const hectares = area / 10000;
-
-      if (hectares > MAX_AREA_HECTARES) {
-        alert(
-          `El área seleccionada es demasiado grande (${hectares.toFixed(2)} hectáreas). El máximo permitido es ${MAX_AREA_HECTARES.toFixed(2)} hectáreas.`
-        );
-        setPolygonPath([]);
-        setLocationInfo(null);
-        setArea(null);
-        return;
-      }
-
-      calculateArea(polygon);
-      const path = polygon.getPath();
-      const points: google.maps.LatLngLiteral[] = [];
-      path.forEach((latLng) => {
-        points.push({ lat: latLng.lat(), lng: latLng.lng() });
-      });
-      // Usar el primer punto del polígono como referencia para la ubicación
-      const referencePoint = points[0];
-      updateLocationInfo(referencePoint.lat, referencePoint.lng);
-    },
-    [calculateArea, updateLocationInfo]
-  );
-
-  const handleClearPolygon = useCallback(() => {
-    setPolygonPath([]);
-    setLocationInfo(null);
-    setArea(null);
-  }, []);
-
-  const handleRemoveLastPoint = useCallback(() => {
-    if (polygonPath.length > 0) {
-      const newPath = polygonPath.slice(0, -1);
-      setPolygonPath(newPath);
-
-      if (newPath.length >= 3) {
-        const tempPolygon = new google.maps.Polygon({
-          paths: newPath,
-        });
-        const area = google.maps.geometry.spherical.computeArea(
-          tempPolygon.getPath()
-        );
-        const hectares = area / 10000;
-
-        if (hectares > MAX_AREA_HECTARES) {
-          setPolygonPath([]);
-          setLocationInfo(null);
-          setArea(null);
-          return;
-        }
-
-        const referencePoint = newPath[0];
-        setMapCenter(referencePoint);
-        updateLocationInfo(referencePoint.lat, referencePoint.lng);
-        calculateArea(tempPolygon);
-      } else {
-        setLocationInfo(null);
-        setArea(null);
-      }
+  const handleMarkerClick = (pointId: number) => {
+    if (points.length >= 3 && pointId === 1) {
+      setShowPolygon(true);
     }
-  }, [polygonPath, updateLocationInfo, calculateArea]);
+  };
+
+  const handleMidpointDragEnd = (index: number, lat: number, lng: number) => {
+    const newPoint = {
+      id: index + 2,
+      lat,
+      lng,
+    };
+
+    const newPoints = [...points];
+    newPoints.splice(index + 1, 0, newPoint);
+
+    const updatedPoints = newPoints.map((point, i) => ({
+      ...point,
+      id: i + 1,
+    }));
+
+    setPoints(updatedPoints);
+  };
 
   return (
-    <LoadScript
-      googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-      libraries={libraries}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-[3fr,1fr]">
-        <Map
-          polygonPath={polygonPath}
-          onPolygonPathChange={handlePolygonPathChange}
-          onPolygonUpdate={handlePolygonUpdate}
-          mapCenter={mapCenter}
-        />
-        <SelectionInfo
-          polygonPath={polygonPath}
-          locationInfo={locationInfo}
-          area={area}
-          onClearPolygon={handleClearPolygon}
-          onRemoveLastPoint={handleRemoveLastPoint}
-        />
+    <div className="w-full mpb-4 lg:pb-0">
+      <div className="flex flex-col lg:flex-row gap-4 lg:h-[500px] p-4 lg:p-0">
+        <div className="w-full lg:w-2/3 h-[500px]">
+          <Map
+            onMapClick={handleMapClick}
+            points={points}
+            onMarkerDragEnd={handleMarkerDragEnd}
+            onMarkerClick={handleMarkerClick}
+            showPolygon={showPolygon}
+            onMidpointDragEnd={handleMidpointDragEnd}
+          />
+        </div>
+        <div className="w-full lg:w-1/3 lg:h-[500px]">
+          <SelectionInfo
+            points={points}
+            onDeleteLastPoint={handleDeleteLastPoint}
+            onDeletePolygon={handleDeletePolygon}
+            showPolygon={showPolygon}
+          />
+        </div>
       </div>
-    </LoadScript>
+    </div>
   );
-});
-
-AreaSelection.displayName = "AreaSelection";
+};
 
 export default AreaSelection;

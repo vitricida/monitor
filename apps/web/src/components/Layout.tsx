@@ -31,7 +31,7 @@ const Layout = () => {
         </div>
       </nav>
 
-      <main className="flex-1 container mx-auto px-4 py-8 mt-16 mb-16">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-20">
         <Outlet />
       </main>
 

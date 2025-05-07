@@ -1,107 +1,59 @@
-import { memo } from "react";
-
-interface LocationInfo {
-  country: string;
-  countryCode: string;
-  region: string;
-}
+import { Point } from "./AreaSelection";
+import { TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface SelectionInfoProps {
-  polygonPath: google.maps.LatLngLiteral[];
-  locationInfo: LocationInfo | null;
-  area: number | null;
-  onClearPolygon: () => void;
-  onRemoveLastPoint: () => void;
+  points: Point[];
+  onDeleteLastPoint: () => void;
+  onDeletePolygon: () => void;
+  showPolygon: boolean;
 }
 
-const SelectionInfo = memo(
-  ({
-    polygonPath,
-    locationInfo,
-    area,
-    onClearPolygon,
-    onRemoveLastPoint,
-  }: SelectionInfoProps) => {
-    if (polygonPath.length === 0) {
-      return (
-        <div className="p-4 bg-gray-100 dark:bg-gray-800">
-          <p className="text-gray-600 dark:text-gray-300">
-            Click on the map to start drawing a polygon
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-col h-full p-4 bg-gray-100 dark:bg-gray-800">
-        <div className="flex-grow space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Area Information
-          </h3>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-300">Points:</span>
-              <span className="text-gray-900 dark:text-white">
-                {polygonPath.length}
+const SelectionInfo = ({
+  points,
+  onDeleteLastPoint,
+  onDeletePolygon,
+  showPolygon,
+}: SelectionInfoProps) => {
+  return (
+    <div className="bg-white shadow-lg p-4 h-full flex flex-col">
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Selected Points</h2>
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="space-y-2">
+          {points.map((point) => (
+            <div
+              key={point.id}
+              className="bg-gray-50 p-2 rounded flex justify-between items-center"
+            >
+              <span className="font-medium text-gray-900">
+                Point {point.id}
+              </span>
+              <span className="text-sm text-gray-600 font-mono">
+                {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
               </span>
             </div>
-
-            {area && (
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Area:</span>
-                <span className="text-gray-900 dark:text-white">
-                  {area.toFixed(2)} hectares
-                </span>
-              </div>
-            )}
-
-            {locationInfo && (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">
-                    Country:
-                  </span>
-                  <span className="text-gray-900 dark:text-white">
-                    {locationInfo.country}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">
-                    Region:
-                  </span>
-                  <span className="text-gray-900 dark:text-white">
-                    {locationInfo.region}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="sticky bottom-0 flex gap-2">
-          {polygonPath.length > 0 && (
-            <button
-              onClick={onRemoveLastPoint}
-              className="flex-1 py-1.5 bg-yellow-600 text-white hover:bg-yellow-700 transition-colors duration-200 text-sm"
-            >
-              Delete Last Point
-            </button>
-          )}
-          {polygonPath.length >= 3 && (
-            <button
-              onClick={onClearPolygon}
-              className="flex-1 py-1.5 bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 text-sm"
-            >
-              Delete Polygon
-            </button>
-          )}
+          ))}
         </div>
       </div>
-    );
-  }
-);
-
-SelectionInfo.displayName = "SelectionInfo";
+      <div className="mt-4 flex gap-2 shrink-0">
+        <button
+          onClick={onDeleteLastPoint}
+          disabled={points.length === 0}
+          className="flex-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium"
+        >
+          <XMarkIcon className="w-3 h-3" />
+          Delete Last Point
+        </button>
+        <button
+          onClick={onDeletePolygon}
+          disabled={!showPolygon}
+          className="flex-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium"
+        >
+          <TrashIcon className="w-3 h-3" />
+          Delete Polygon
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default SelectionInfo;
