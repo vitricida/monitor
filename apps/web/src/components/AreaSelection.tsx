@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Map from "./Map";
 import SelectionInfo from "./SelectionInfo";
 
@@ -12,22 +12,39 @@ const AreaSelection = () => {
   const [points, setPoints] = useState<Point[]>([]);
   const [showPolygon, setShowPolygon] = useState(false);
 
+  useEffect(() => {
+    if (showPolygon && points.length >= 3) {
+      const geojson = {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              ...points.map((point) => [point.lng, point.lat]),
+              [points[0].lng, points[0].lat], // Cerrar el polígono
+            ],
+          ],
+        },
+      };
+      console.log(JSON.stringify(geojson));
+    }
+  }, [points, showPolygon]);
+
   const handleMapClick = (lat: number, lng: number) => {
-    setPoints([...points, { id: points.length + 1, lat, lng }]);
+    const newPoints = [...points, { id: points.length + 1, lat, lng }];
+    setPoints(newPoints);
   };
 
   const handleDeleteLastPoint = () => {
     if (points.length === 0) return;
 
-    // Eliminar el último punto
     const newPoints = points.slice(0, -1);
 
-    // Si después de eliminar quedan menos de 3 puntos, ocultar el polígono
     if (newPoints.length < 3) {
       setShowPolygon(false);
     }
 
-    // Actualizar los IDs de los puntos restantes
     const updatedPoints = newPoints.map((point, i) => ({
       ...point,
       id: i + 1,
@@ -37,11 +54,10 @@ const AreaSelection = () => {
   };
 
   const handleMarkerDragEnd = (pointId: number, lat: number, lng: number) => {
-    setPoints(
-      points.map((point) =>
-        point.id === pointId ? { ...point, lat, lng } : point
-      )
+    const updatedPoints = points.map((point) =>
+      point.id === pointId ? { ...point, lat, lng } : point
     );
+    setPoints(updatedPoints);
   };
 
   const handleDeletePolygon = () => {

@@ -1,6 +1,6 @@
 import { GoogleMap, LoadScript, Marker, Polygon } from "@react-google-maps/api";
 import { Point } from "./AreaSelection";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface MapProps {
   onMapClick: (lat: number, lng: number) => void;
@@ -48,17 +48,14 @@ const Map = ({
   onMidpointDragEnd,
 }: MapProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
+  const [tempPolygonPoints, setTempPolygonPoints] = useState<Point[]>([]);
 
   useEffect(() => {
     if (showPolygon && points.length >= 3 && mapRef.current) {
       const bounds = new google.maps.LatLngBounds();
-
-      // Agregar todos los puntos al bounds
       points.forEach((point) => {
         bounds.extend({ lat: point.lat, lng: point.lng });
       });
-
-      // Ajustar el zoom para que el polígono quepa en la pantalla
       mapRef.current.fitBounds(bounds);
     }
   }, [showPolygon, points]);
@@ -66,6 +63,12 @@ const Map = ({
   const handleClick = (e: google.maps.MapMouseEvent) => {
     if (e.latLng) {
       onMapClick(e.latLng.lat(), e.latLng.lng());
+    }
+  };
+
+  const handleMarkerDrag = (pointId: number, e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      onMarkerDragEnd(pointId, e.latLng.lat(), e.latLng.lng());
     }
   };
 
@@ -78,17 +81,34 @@ const Map = ({
     }
   };
 
+  const handleMidpointDrag = (index: number, e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      // Crear una copia temporal de los puntos con el midpoint actualizado
+      const tempPoints = [...points];
+      tempPoints.splice(index + 1, 0, {
+        id: index + 2,
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng(),
+      });
+      setTempPolygonPoints(tempPoints);
+    }
+  };
+
   const handleMidpointDragEnd = (
     index: number,
     e: google.maps.MapMouseEvent
   ) => {
     if (e.latLng) {
+      setTempPolygonPoints([]); // Limpiar puntos temporales
       onMidpointDragEnd(index, e.latLng.lat(), e.latLng.lng());
     }
   };
 
   const getPolygonPath = () => {
-    return points.map((point) => ({
+    // Usar puntos temporales si existen, sino usar los puntos normales
+    const pointsToUse =
+      tempPolygonPoints.length > 0 ? tempPolygonPoints : points;
+    return pointsToUse.map((point) => ({
       lat: point.lat,
       lng: point.lng,
     }));
@@ -152,6 +172,7 @@ const Map = ({
               }
               label={undefined}
               draggable={true}
+              onDrag={(e) => handleMarkerDrag(point.id, e)}
               onDragEnd={(e) => handleMarkerDragEnd(point.id, e)}
               onClick={() => onMarkerClick(point.id)}
             />
@@ -171,8 +192,11 @@ const Map = ({
                     strokeColor: "#ffffff",
                     strokeWeight: 1,
                   }}
-                  draggable={false}
+                  draggable={true}
+                  cursor="move"
+                  onDrag={(e) => handleMidpointDrag(midpoint.index, e)}
                   onDragEnd={(e) => handleMidpointDragEnd(midpoint.index, e)}
+                  clickable={true}
                 />
               ))}
             </>
