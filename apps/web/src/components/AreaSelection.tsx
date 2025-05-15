@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Map from "./Map";
 import SelectionInfo from "./SelectionInfo";
+import * as turf from "@turf/turf";
 
 export interface Point {
   id: number;
@@ -11,25 +12,39 @@ export interface Point {
 const AreaSelection = () => {
   const [points, setPoints] = useState<Point[]>([]);
   const [showPolygon, setShowPolygon] = useState(false);
+  const [centroid, setCentroid] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const [area, setArea] = useState<number>(0);
+
+  const calculatePolygonMetrics = (currentPoints: Point[]) => {
+    if (currentPoints.length < 3) {
+      setCentroid(null);
+      setArea(0);
+      return;
+    }
+
+    // Crear un polígono de Turf.js
+    const coordinates = currentPoints.map((point) => [point.lng, point.lat]);
+    coordinates.push(coordinates[0]); // Cerrar el polígono
+    const polygon = turf.polygon([coordinates]);
+
+    // Calcular el centroide usando Turf.js
+    const centroidPoint = turf.centroid(polygon);
+    setCentroid({
+      lat: centroidPoint.geometry.coordinates[1],
+      lng: centroidPoint.geometry.coordinates[0],
+    });
+
+    // Calcular el área en metros cuadrados y convertir a hectáreas
+    const areaInSquareMeters = turf.area(polygon);
+    const areaInHectares = areaInSquareMeters / 10000;
+    setArea(areaInHectares);
+  };
 
   useEffect(() => {
-    if (showPolygon && points.length >= 3) {
-      const geojson = {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              ...points.map((point) => [point.lng, point.lat]),
-              [points[0].lng, points[0].lat], // Cerrar el polígono
-            ],
-          ],
-        },
-      };
-      console.log(JSON.stringify(geojson));
-    }
-  }, [points, showPolygon]);
+    calculatePolygonMetrics(points);
+  }, [points]);
 
   const handleMapClick = (lat: number, lng: number) => {
     const newPoints = [...points, { id: points.length + 1, lat, lng }];
@@ -100,6 +115,7 @@ const AreaSelection = () => {
             onMarkerClick={handleMarkerClick}
             showPolygon={showPolygon}
             onMidpointDragEnd={handleMidpointDragEnd}
+            centroid={centroid}
           />
         </div>
         <div className="w-full lg:w-1/3 lg:h-[500px]">
@@ -108,6 +124,8 @@ const AreaSelection = () => {
             onDeleteLastPoint={handleDeleteLastPoint}
             onDeletePolygon={handleDeletePolygon}
             showPolygon={showPolygon}
+            area={area}
+            centroid={centroid}
           />
         </div>
       </div>

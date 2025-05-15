@@ -9,6 +9,7 @@ interface MapProps {
   onMarkerClick: (pointId: number) => void;
   showPolygon: boolean;
   onMidpointDragEnd: (index: number, lat: number, lng: number) => void;
+  centroid: { lat: number; lng: number } | null;
 }
 
 const containerStyle = {
@@ -46,6 +47,7 @@ const Map = ({
   onMarkerClick,
   showPolygon,
   onMidpointDragEnd,
+  centroid,
 }: MapProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const [tempPolygonPoints, setTempPolygonPoints] = useState<Point[]>([]);
@@ -200,6 +202,20 @@ const Map = ({
                 />
               ))}
             </>
+          )}
+          {centroid && showPolygon && (
+            <Marker
+              position={{ lat: centroid.lat, lng: centroid.lng }}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 7,
+                fillColor: "#DC2626",
+                fillOpacity: 0.8,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+              }}
+              clickable={false}
+            />
           )}
         </GoogleMap>
       </LoadScript>

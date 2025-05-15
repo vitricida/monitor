@@ -12,6 +12,8 @@ interface SelectionInfoProps {
   onDeleteLastPoint: () => void;
   onDeletePolygon: () => void;
   showPolygon: boolean;
+  area: number;
+  centroid: { lat: number; lng: number } | null;
 }
 
 const SelectionInfo = ({
@@ -19,6 +21,8 @@ const SelectionInfo = ({
   onDeleteLastPoint,
   onDeletePolygon,
   showPolygon,
+  area,
+  centroid,
 }: SelectionInfoProps) => {
   return (
     <div className="bg-white shadow-lg p-4 h-full flex flex-col">
@@ -49,6 +53,16 @@ const SelectionInfo = ({
             <div className="text-gray-500 space-y-4">
               <CheckCircleIcon className="w-12 h-12 mx-auto text-green-500" />
               <p className="font-medium">Area selected successfully!</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-900">
+                  Area: {area.toFixed(2)} hectares
+                </p>
+                {centroid && (
+                  <p className="text-sm font-medium text-gray-900">
+                    Center: {centroid.lat.toFixed(6)}, {centroid.lng.toFixed(6)}
+                  </p>
+                )}
+              </div>
               <p className="text-sm">
                 You can drag any point to adjust the area, or use the midpoint
                 markers to add new points
